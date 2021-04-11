@@ -2,13 +2,12 @@ import streamlit as st
 import datetime
 import streamlit.components.v1 as components
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
 import numpy as np
 import pandas as pd
 from celluloid import Camera
 import plotly.express as px
 
-# streamlit run F:/PythonProjects/demo_app.py
+# streamlit run F:/PythonProjects/main.py
 
 with st.echo(code_location='below'):
     @st.cache
@@ -44,28 +43,41 @@ with st.echo(code_location='below'):
         return df
 
     @st.cache
-    def cache_for_anim(df, typ):
-        list_returned = []
-        df_two = df.query('`type` == @typ and `region` != "TotalUS"')
-        for j in np.unique(df_raw_main['Date'].dt.to_pydatetime()):
+    def cache_for_anim(df, typ, slice):
+        dict_to_dash = {'Price, $US': 'AveragePrice',
+                        'Volume, thousands of avocados': 'Total Volume',
+                        'Number of Bags, thousands': 'Total Bags'}
+        column = dict_to_dash[slice]
+        dict_returned = {}
+        df_two = df.query('''`type` == @typ and `region` in ['Plains', 'West','Midsouth','GreatLakes','Southeast','Northeast', 'SouthCentral', 'California']''')
+
+        for j in sorted(np.unique(df_raw_main['Date'].dt.to_pydatetime())):
             instance = df_two.query('`Date` == @j')
-            list_returned.append(instance)
-        return list_returned
+            instance.sort_values(by=[column], inplace=True)
+            dict_returned[j.date()] = instance
+        return dict_returned
 
     st.title("Avocado Data in America")
     st.markdown(
         """
         <style>
         .reportview-container {
-            background: url("https://www.color-hex.com/color/ddd48f")
+            background: #98e4d9
         }
-       .sidebar .sidebar-content {
-            background: url("https://www.color-hex.com/color/6b8c21")
+       .sidebar.sidebar-content {
+            background: #ddd48f
         }
         </style>
         """,
         unsafe_allow_html=True
     )
+    """Hello, fellow coder and avocado lover! :)"""
+    """This dashboard allows you to check avocado prices, """
+    """avocado volumes and bags sold for regions of USA from 2015 to 2017 year!"""
+    """Also, you can pick a particular type of avocado to look at - either organic, or conventional."""
+    """As well, you can pick to see weekly, monthly, or annuallized data"""
+    """Feel free to compare the regions between each other, using the buttons below"""
+
     df_raw = fetch_data()
     start_date = st.sidebar.date_input('Start date (min: 2015-01-01)', datetime.date(2015, 1, 1))
     last_date = st.sidebar.date_input('End date (max: 2018-03-25)', datetime.date(2017, 12, 31))
@@ -116,17 +128,24 @@ with st.echo(code_location='below'):
                  })
     fig.update_layout(
         margin=dict(l=0, r=0, t=5, b=0),
-        paper_bgcolor="#ddd48f",
+        paper_bgcolor='white',
     )
     st.plotly_chart(fig)
 
-    # "Let's look at the data dynamically!"
-    # fig, ax = plt.subplots()
-    # camera = Camera(fig)
-    # list_anim = cache_for_anim(df_raw_main, typeo)
-    # for i in list_anim:
-    #     ax.barh(i['region'], i[str(dict_to_dash[slice])])
-    #     camera.snap()
-    # animation = camera.animate()
-    #
-    # components.html(animation.to_jshtml(), height=1000)
+    """If you are interested in the animated bar chart, pick a shorter time period. Otherwise, the chart may load way too long"""
+
+    if st.button('Animated bar plot'):
+        "Let's look at the data dynamically!"
+        "Here we have data aggregated by large regions of US."
+        "You can check the states that are aggregated in each of the sections in Wikipedia."
+        fig, ax = plt.subplots()
+        fig.set_figwidth(7)
+        fig.set_figheight(6)
+        camera = Camera(fig)
+        dict_anim = cache_for_anim(df_raw_main, typeo, slice)
+        for i in dict_anim.keys():
+            ax.barh(dict_anim[i]['region'], dict_anim[i][str(dict_to_dash[slice])])
+            camera.snap()
+        animation = camera.animate()
+
+        components.html(animation.to_jshtml(), height=1000)

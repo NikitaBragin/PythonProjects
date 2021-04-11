@@ -1,0 +1,6 @@
+streamlit==0.79.0
+matplotlib==3.4.0
+numpy==1.20.1
+pandas==1.2.3
+plotly==4.14.3
+celluloid==0.2.0
